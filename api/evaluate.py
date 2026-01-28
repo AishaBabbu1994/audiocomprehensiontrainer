@@ -1,46 +1,35 @@
-from fastapi import FastAPI, File, UploadFile, Form
-import whisper
-import tempfile
+from fastapi import FastAPI
+from pydantic import BaseModel
 import re
 
 app = FastAPI()
 
-whisper_model = whisper.load_model("tiny")
+class Data(BaseModel):
+    original: str
+    transcription: str
 
 def clean(text):
-    return re.findall(r"\b\w+\b", text.lower())
+    return set(re.findall(r"\b\w+\b", text.lower()))
 
 @app.post("/api/evaluate")
-async def evaluate(
-    text: str = Form(...),
-    audio: UploadFile = File(...)
-):
-    with tempfile.NamedTemporaryFile(delete=False) as tmp:
-        tmp.write(await audio.read())
-        audio_path = tmp.name
+def evaluate(data: Data):
+    original = clean(data.original)
+    user = clean(data.transcription)
 
-    result = whisper_model.transcribe(audio_path)
-    transcription = result["text"]
-
-    original_words = set(clean(text))
-    user_words = set(clean(transcription))
-
-    if not original_words:
+    if not original:
         score = 0
     else:
-        overlap = original_words.intersection(user_words)
-        score = round((len(overlap) / len(original_words)) * 100)
+        score = round(len(original & user) / len(original) * 100)
 
     feedback = (
-        "Excelente comprensión del texto"
+        "Excelente comprensión"
         if score >= 80 else
-        "Comprensión aceptable, puede mejorar"
+        "Comprensión aceptable"
         if score >= 60 else
-        "Comprensión baja, necesita refuerzo"
+        "Comprensión baja"
     )
 
     return {
-        "transcription": transcription,
         "score": score,
         "feedback": feedback
     }
