@@ -1,12 +1,14 @@
 from fastapi import FastAPI, File, UploadFile, Form
 import whisper
 import tempfile
-from sentence_transformers import SentenceTransformer, util
+import re
 
 app = FastAPI()
 
-whisper_model = whisper.load_model("base")
-embedder = SentenceTransformer("all-MiniLM-L6-v2")
+whisper_model = whisper.load_model("tiny")
+
+def clean(text):
+    return re.findall(r"\b\w+\b", text.lower())
 
 @app.post("/api/evaluate")
 async def evaluate(
@@ -20,20 +22,21 @@ async def evaluate(
     result = whisper_model.transcribe(audio_path)
     transcription = result["text"]
 
-    embeddings = embedder.encode(
-        [text, transcription],
-        convert_to_tensor=True
-    )
+    original_words = set(clean(text))
+    user_words = set(clean(transcription))
 
-    similarity = util.cos_sim(embeddings[0], embeddings[1]).item()
-    score = round(similarity * 100, 2)
+    if not original_words:
+        score = 0
+    else:
+        overlap = original_words.intersection(user_words)
+        score = round((len(overlap) / len(original_words)) * 100)
 
     feedback = (
-        "Excelente comprensión"
+        "Excelente comprensión del texto"
         if score >= 80 else
-        "Buena comprensión, con omisiones"
+        "Comprensión aceptable, puede mejorar"
         if score >= 60 else
-        "Comprensión baja, requiere refuerzo"
+        "Comprensión baja, necesita refuerzo"
     )
 
     return {
