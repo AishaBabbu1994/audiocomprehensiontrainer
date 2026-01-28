@@ -1,5 +1,1 @@
 fastapi
-uvicorn
-openai-whisper
-sentence-transformers
-torch
