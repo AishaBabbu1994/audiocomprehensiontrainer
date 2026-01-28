@@ -1,0 +1,8 @@
+{
+  "functions": {
+    "api/evaluate.py": {
+      "runtime": "python3.10",
+      "maxDuration": 60
+    }
+  }
+}
