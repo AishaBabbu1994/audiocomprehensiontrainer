@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Audio Comprehension Trainer</title>
+</head>
+<body>
+  <h2>🎧 Audio Comprehension Trainer</h2>
+
+  <textarea id="text" rows="6" placeholder="Texto original"></textarea><br><br>
+  <input type="file" id="audio"><br><br>
+  <button onclick="send()">Evaluar</button>
+
+  <pre id="result"></pre>
+
+<script>
+async function send() {
+  const form = new FormData();
+  form.append("text", document.getElementById("text").value);
+  form.append("audio", document.getElementById("audio").files[0]);
+
+  const res = await fetch("/api/evaluate", {
+    method: "POST",
+    body: form
+  });
+
+  const data = await res.json();
+  document.getElementById("result").textContent =
+    "Transcripción:\n" + data.transcription +
+    "\n\nComprensión: " + data.score + "%" +
+    "\nFeedback: " + data.feedback;
+}
+</script>
+</body>
+</html>
